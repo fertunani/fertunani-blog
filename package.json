@@ -1,0 +1,38 @@
+{
+  "name": "fertunani-blog",
+  "version": "1.0.0",
+  "description": "Blog fertunani",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "build": "tailwindcss -i ./public/css/input.css -o ./public/css/output.css --minify",
+    "dev": "node --watch app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fertunani/fertunani-blog.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/fertunani/fertunani-blog/issues"
+  },
+  "homepage": "https://github.com/fertunani/fertunani-blog#readme",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "ejs": "^5.0.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "marked": "^18.0.2",
+    "multer": "^2.1.1",
+    "mysql2": "^3.22.2",
+    "slugify": "^1.6.9",
+    "sqlite3": "^6.0.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
+  }
+}

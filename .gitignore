@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Database
+blog.db
+
+# Certificates & keys
+certs/
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+
+# Build artifacts
+public/css/output.css
+
+# Archives
+*.zip
+*.tar.gz
+
+# Runtime data
+posts-data/
+
+# Editor & OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Claude Code local settings
+.claude/settings.local.json

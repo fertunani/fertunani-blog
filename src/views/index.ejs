@@ -1,0 +1,31 @@
+<% for (const year of Object.keys(grouped).sort((a,b) => b - a)) { %>
+  <section class="mb-10">
+    <h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-4 border-b border-zinc-200 dark:border-zinc-800 pb-2">
+      <%= year %>
+    </h2>
+
+    <% for (const month of Object.keys(grouped[year])) { %>
+      <div class="mb-6">
+        <h3 class="text-sm font-semibold uppercase tracking-widest text-zinc-400 mb-3">
+          <%= month %>
+        </h3>
+        <ul class="space-y-2">
+          <% for (const post of grouped[year][month]) { %>
+            <li class="flex items-baseline gap-3">
+              <span class="text-xs text-zinc-400 w-12 shrink-0">
+                <%= new Date(post.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) %>
+              </span>
+              <a href="/posts/<%= post.slug %>" class="hover:underline hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors text-zinc-700 dark:text-zinc-300">
+                <%= post.title %>
+              </a>
+            </li>
+          <% } %>
+        </ul>
+      </div>
+    <% } %>
+  </section>
+<% } %>
+
+<% if (Object.keys(grouped).length === 0) { %>
+  <p class="text-zinc-400 text-sm">Nenhum post ainda.<% if (typeof isAdmin !== 'undefined' && isAdmin) { %> <a href="/posts/admin/new" class="underline hover:text-zinc-700 dark:hover:text-zinc-200">Escreva o primeiro.</a><% } %></p>
+<% } %>

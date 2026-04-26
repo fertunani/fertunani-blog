@@ -1,0 +1,170 @@
+<div class="max-w-3xl">
+  <h1 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-8">Novo Post</h1>
+
+  <% if (error) { %>
+    <p class="text-red-500 text-sm mb-4"><%= error %></p>
+  <% } %>
+
+  <form id="post-form" action="/posts/admin/new" method="POST" class="space-y-6">
+    <div>
+      <label class="block text-sm text-zinc-500 mb-1">Título</label>
+      <input type="text" name="title" id="title-input" required autocomplete="off"
+        class="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 rounded px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-lg" />
+    </div>
+
+    <div>
+      <label class="block text-sm text-zinc-500 mb-2">Conteúdo</label>
+
+      <!-- Toolbar -->
+      <div class="flex flex-wrap gap-1 mb-2 p-2 border border-zinc-300 dark:border-zinc-700 rounded-t bg-zinc-50 dark:bg-zinc-900">
+        <button type="button" onclick="fmt('bold')" title="Negrito (Ctrl+B)"
+          class="toolbar-btn font-bold">B</button>
+        <button type="button" onclick="fmt('italic')" title="Itálico (Ctrl+I)"
+          class="toolbar-btn italic">I</button>
+        <button type="button" onclick="fmt('code')" title="Código inline"
+          class="toolbar-btn font-mono text-xs">&lt;/&gt;</button>
+        <button type="button" onclick="fmt('codeblock')" title="Bloco de código"
+          class="toolbar-btn font-mono text-xs">```</button>
+        <div class="w-px bg-zinc-300 dark:bg-zinc-700 mx-1"></div>
+        <button type="button" onclick="fmt('h2')" title="Título H2"
+          class="toolbar-btn text-xs">H2</button>
+        <button type="button" onclick="fmt('h3')" title="Título H3"
+          class="toolbar-btn text-xs">H3</button>
+        <div class="w-px bg-zinc-300 dark:bg-zinc-700 mx-1"></div>
+        <button type="button" onclick="fmt('link')" title="Link"
+          class="toolbar-btn text-xs">🔗</button>
+        <button type="button" onclick="fmt('ul')" title="Lista"
+          class="toolbar-btn text-xs">• lista</button>
+        <div class="w-px bg-zinc-300 dark:bg-zinc-700 mx-1"></div>
+        <span class="text-xs text-zinc-400 self-center ml-1">Ctrl+V para colar imagem</span>
+      </div>
+
+      <textarea name="content" id="editor" rows="20" required
+        placeholder="Escreva em Markdown. Cole prints com Ctrl+V direto aqui."
+        class="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 border-t-0 rounded-b px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 font-mono text-sm resize-y leading-relaxed"></textarea>
+
+      <div id="upload-status" class="text-xs text-zinc-400 mt-1 hidden">Fazendo upload da imagem...</div>
+    </div>
+
+    <div class="flex gap-4">
+      <button type="submit"
+        class="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 rounded text-sm hover:opacity-80 transition-opacity">
+        Publicar
+      </button>
+      <a href="/" class="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors self-center">
+        Cancelar
+      </a>
+    </div>
+  </form>
+</div>
+
+<style>
+.toolbar-btn {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #52525b;
+  cursor: pointer;
+  transition: background 0.1s;
+  border: 1px solid transparent;
+  background: transparent;
+}
+.toolbar-btn:hover {
+  background: #e4e4e7;
+  border-color: #d4d4d8;
+}
+.dark .toolbar-btn { color: #a1a1aa; }
+.dark .toolbar-btn:hover { background: #27272a; border-color: #3f3f46; }
+</style>
+
+<script>
+const editor = document.getElementById('editor')
+const titleInput = document.getElementById('title-input')
+
+// Slug derivado do título para o upload
+let currentSlug = ''
+titleInput.addEventListener('input', () => {
+  currentSlug = titleInput.value
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim().replace(/\s+/g, '-')
+})
+
+function insertAt(before, after = '') {
+  const start = editor.selectionStart
+  const end = editor.selectionEnd
+  const sel = editor.value.substring(start, end)
+  const replacement = before + sel + after
+  editor.value = editor.value.substring(0, start) + replacement + editor.value.substring(end)
+  editor.selectionStart = start + before.length
+  editor.selectionEnd = start + before.length + sel.length
+  editor.focus()
+}
+
+function fmt(type) {
+  switch(type) {
+    case 'bold':       return insertAt('**', '**')
+    case 'italic':     return insertAt('*', '*')
+    case 'code':       return insertAt('`', '`')
+    case 'codeblock':  return insertAt('\n```\n', '\n```\n')
+    case 'h2':         return insertAt('## ')
+    case 'h3':         return insertAt('### ')
+    case 'link':       return insertAt('[', '](url)')
+    case 'ul':         return insertAt('\n- ')
+  }
+}
+
+// Atalhos de teclado no editor
+editor.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'b') { e.preventDefault(); fmt('bold') }
+  if (e.ctrlKey && e.key === 'i') { e.preventDefault(); fmt('italic') }
+  // Tab → 2 espaços
+  if (e.key === 'Tab') {
+    e.preventDefault()
+    insertAt('  ')
+  }
+})
+
+// Ctrl+V com imagem
+editor.addEventListener('paste', async e => {
+  const items = e.clipboardData?.items
+  if (!items) return
+
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault()
+
+      if (!currentSlug) {
+        alert('Preencha o título antes de colar uma imagem.')
+        return
+      }
+
+      const file = item.getAsFile()
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const status = document.getElementById('upload-status')
+      status.classList.remove('hidden')
+
+      try {
+        const res = await fetch(`/upload/${currentSlug}`, {
+          method: 'POST',
+          body: formData
+        })
+        const data = await res.json()
+        if (data.url) {
+          insertAt(`![imagem](${data.url})`)
+        } else {
+          alert('Erro ao fazer upload: ' + (data.error || 'desconhecido'))
+        }
+      } catch (err) {
+        alert('Erro ao fazer upload da imagem')
+      } finally {
+        status.classList.add('hidden')
+      }
+      break
+    }
+  }
+})
+</script>

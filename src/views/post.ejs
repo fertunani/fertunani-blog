@@ -1,0 +1,154 @@
+<article>
+  <header class="mb-10">
+    <time class="text-xs text-zinc-400 uppercase tracking-widest">
+      <% const d = new Date(post.created_at + 'Z') %>
+      <%= d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' }) %>
+      às
+      <%= d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }) %>
+    </time>
+    <h1 class="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mt-2 leading-snug">
+      <%= post.title %>
+    </h1>
+  </header>
+
+  <div id="post-content" class="leading-relaxed text-zinc-700 dark:text-zinc-300">
+    <%- post.html %>
+  </div>
+
+  <footer class="mt-16 pt-6 border-t border-zinc-200 dark:border-zinc-800 flex gap-4 text-sm text-zinc-400">
+    <a href="/" class="hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">← voltar</a>
+    <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
+      <a href="/posts/admin/edit/<%= post.id %>" class="hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">editar</a>
+      <form action="/posts/admin/delete/<%= post.id %>" method="POST" onsubmit="return confirm('Deletar este post?')">
+        <button type="submit" class="hover:text-red-500 transition-colors cursor-pointer">deletar</button>
+      </form>
+    <% } %>
+  </footer>
+</article>
+
+<style>
+  /* Tipografia do post */
+  #post-content h1, #post-content h2, #post-content h3 {
+    font-weight: 700;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    color: #18181b;
+  }
+  .dark #post-content h1, .dark #post-content h2, .dark #post-content h3 {
+    color: #f4f4f5;
+  }
+  #post-content h2 { font-size: 1.4rem; border-bottom: 1px solid #e4e4e7; padding-bottom: 0.3rem; }
+  #post-content h3 { font-size: 1.15rem; }
+  .dark #post-content h2 { border-color: #3f3f46; }
+
+  #post-content p { margin-bottom: 1rem; }
+  #post-content ul, #post-content ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+  #post-content li { margin-bottom: 0.25rem; }
+  #post-content ul li { list-style: disc; }
+  #post-content ol li { list-style: decimal; }
+
+  #post-content a { color: #3b82f6; text-decoration: underline; }
+  #post-content a:hover { opacity: 0.8; }
+
+  #post-content strong { font-weight: 700; color: #18181b; }
+  .dark #post-content strong { color: #f4f4f5; }
+  #post-content em { font-style: italic; }
+
+  #post-content img {
+    max-width: 100%;
+    border-radius: 6px;
+    margin: 1rem 0;
+    border: 1px solid #e4e4e7;
+  }
+  .dark #post-content img { border-color: #3f3f46; }
+
+  /* Código inline */
+  #post-content code {
+    background: #f4f4f5;
+    color: #dc2626;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.875em;
+  }
+  .dark #post-content code {
+    background: #27272a;
+    color: #fb923c;
+  }
+
+  /* Bloco de código */
+  #post-content pre {
+    background: #18181b;
+    color: #e4e4e7;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    margin: 1.25rem 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    position: relative;
+  }
+  .dark #post-content pre {
+    background: #09090b;
+    border: 1px solid #27272a;
+  }
+  #post-content pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    border-radius: 0;
+    font-size: inherit;
+  }
+
+  /* Botão copiar */
+  .copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #3f3f46;
+    color: #a1a1aa;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: sans-serif;
+  }
+  .copy-btn:hover { background: #52525b; color: #f4f4f5; }
+  .copy-btn.copied { background: #16a34a; color: #fff; }
+
+  #post-content blockquote {
+    border-left: 3px solid #d4d4d8;
+    padding-left: 1rem;
+    color: #71717a;
+    margin: 1rem 0;
+    font-style: italic;
+  }
+  .dark #post-content blockquote { border-color: #52525b; color: #a1a1aa; }
+</style>
+
+<script>
+  // Adicionar botão copiar em todos os blocos <pre>
+  document.querySelectorAll('#post-content pre').forEach(pre => {
+    pre.style.position = 'relative'
+    const btn = document.createElement('button')
+    btn.className = 'copy-btn'
+    btn.textContent = 'copiar'
+    btn.addEventListener('click', async () => {
+      const code = pre.querySelector('code')?.innerText ?? pre.innerText
+      try {
+        await navigator.clipboard.writeText(code)
+        btn.textContent = 'copiado!'
+        btn.classList.add('copied')
+        setTimeout(() => {
+          btn.textContent = 'copiar'
+          btn.classList.remove('copied')
+        }, 2000)
+      } catch {
+        btn.textContent = 'erro'
+      }
+    })
+    pre.appendChild(btn)
+  })
+</script>
