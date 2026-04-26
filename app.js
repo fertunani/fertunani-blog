@@ -59,6 +59,7 @@ app.post('/logout', (req, res) => {
 app.use('/', require('./src/routes/index'))
 app.use('/upload', requireAuth, require('./src/routes/upload'))
 app.use('/posts', require('./src/routes/posts'))
+app.use('/drafts', require('./src/routes/drafts'))
 
 app.use((req, res) => {
   res.status(404).render('404', { title: 'Não encontrado' })

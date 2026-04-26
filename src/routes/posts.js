@@ -15,8 +15,13 @@ function ensurePostDir(slug) {
 }
 
 // Formulário de criação — deve vir ANTES de /:slug
-router.get('/admin/new', requireAuth, (req, res) => {
-  res.render('admin/new', { error: null })
+router.get('/admin/new', requireAuth, async (req, res) => {
+  let draft = null
+  if (req.query.draft) {
+    const [rows] = await db.execute(`SELECT * FROM drafts WHERE id = ?`, [req.query.draft])
+    if (rows.length) draft = rows[0]
+  }
+  res.render('admin/new', { error: null, draft })
 })
 
 router.post('/admin/new', requireAuth, async (req, res) => {

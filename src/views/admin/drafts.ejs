@@ -1,0 +1,40 @@
+<div class="max-w-3xl">
+  <div class="flex items-center justify-between mb-8">
+    <h1 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Rascunhos</h1>
+    <a href="/posts/admin/new" class="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 rounded text-sm hover:opacity-80 transition-opacity">
+      + novo post
+    </a>
+  </div>
+
+  <% if (drafts.length === 0) { %>
+    <p class="text-zinc-400 text-sm">Nenhum rascunho salvo.</p>
+  <% } else { %>
+    <ul class="space-y-3">
+      <% for (const draft of drafts) { %>
+        <li class="flex items-center justify-between border border-zinc-200 dark:border-zinc-800 rounded px-4 py-3">
+          <div>
+            <a href="/posts/admin/new?draft=<%= draft.id %>" class="text-zinc-800 dark:text-zinc-200 hover:underline font-medium">
+              <%= draft.title || '(sem título)' %>
+            </a>
+            <p class="text-xs text-zinc-400 mt-0.5">
+              Salvo em <%= new Date(draft.updated_at + 'Z').toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) %>
+            </p>
+          </div>
+          <button
+            onclick="deleteDraft(<%= draft.id %>, this)"
+            class="text-xs text-red-400 hover:text-red-600 transition-colors ml-4">
+            excluir
+          </button>
+        </li>
+      <% } %>
+    </ul>
+  <% } %>
+</div>
+
+<script>
+async function deleteDraft(id, btn) {
+  if (!confirm('Excluir este rascunho?')) return
+  await fetch(`/drafts/${id}`, { method: 'DELETE' })
+  btn.closest('li').remove()
+}
+</script>

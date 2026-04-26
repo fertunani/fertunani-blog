@@ -57,6 +57,7 @@
       <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
         <div class="flex items-center gap-4">
           <a href="/posts/admin/new" class="hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">+ novo post</a>
+          <a href="/drafts" class="hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">rascunhos</a>
           <form action="/logout" method="POST" class="inline">
             <button type="submit" class="hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer">sair</button>
           </form>

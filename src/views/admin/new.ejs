@@ -9,6 +9,7 @@
     <div>
       <label class="block text-sm text-zinc-500 mb-1">Título</label>
       <input type="text" name="title" id="title-input" required autocomplete="off"
+        value="<%= typeof draft !== 'undefined' && draft ? draft.title : '' %>"
         class="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 rounded px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-lg" />
     </div>
 
@@ -41,21 +42,37 @@
 
       <textarea name="content" id="editor" rows="20" required
         placeholder="Escreva em Markdown. Cole prints com Ctrl+V direto aqui."
-        class="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 border-t-0 rounded-b px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 font-mono text-sm resize-y leading-relaxed"></textarea>
+        class="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 border-t-0 rounded-b px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 font-mono text-sm resize-y leading-relaxed"><%= typeof draft !== 'undefined' && draft ? draft.content : '' %></textarea>
 
       <div id="upload-status" class="text-xs text-zinc-400 mt-1 hidden">Fazendo upload da imagem...</div>
     </div>
 
-    <div class="flex gap-4">
+    <div class="flex gap-4 items-center">
       <button type="submit"
         class="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 rounded text-sm hover:opacity-80 transition-opacity">
         Publicar
       </button>
-      <a href="/" class="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors self-center">
+      <button type="button" id="history-btn"
+        class="px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors text-zinc-600 dark:text-zinc-400 hidden">
+        Histórico
+      </button>
+      <span id="autosave-status" class="text-xs text-zinc-400 ml-auto"></span>
+      <a href="/" class="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">
         Cancelar
       </a>
     </div>
   </form>
+</div>
+
+<!-- Modal histórico -->
+<div id="history-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-zinc-900 rounded-lg w-full max-w-lg max-h-[80vh] flex flex-col">
+    <div class="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800">
+      <h2 class="font-semibold text-zinc-900 dark:text-zinc-100">Histórico de versões</h2>
+      <button onclick="closeHistory()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-xl leading-none">&times;</button>
+    </div>
+    <ul id="history-list" class="overflow-y-auto flex-1 divide-y divide-zinc-100 dark:divide-zinc-800"></ul>
+  </div>
 </div>
 
 <style>
@@ -80,8 +97,10 @@
 <script>
 const editor = document.getElementById('editor')
 const titleInput = document.getElementById('title-input')
+const autosaveStatus = document.getElementById('autosave-status')
+const historyBtn = document.getElementById('history-btn')
 
-// Slug derivado do título para o upload
+// --- Slug derivado do título para upload ---
 let currentSlug = ''
 titleInput.addEventListener('input', () => {
   currentSlug = titleInput.value
@@ -91,6 +110,134 @@ titleInput.addEventListener('input', () => {
     .trim().replace(/\s+/g, '-')
 })
 
+// --- localStorage ---
+const LS_KEY = 'draft_new'
+
+function saveLocal() {
+  localStorage.setItem(LS_KEY, JSON.stringify({ title: titleInput.value, content: editor.value }))
+}
+
+function restoreLocal() {
+  const saved = localStorage.getItem(LS_KEY)
+  if (!saved) return
+  try {
+    const { title, content } = JSON.parse(saved)
+    if (title) titleInput.value = title
+    if (content) editor.value = content
+    // atualiza slug
+    titleInput.dispatchEvent(new Event('input'))
+  } catch {}
+}
+
+// --- Rascunho no banco ---
+let draftId = null
+const params = new URLSearchParams(location.search)
+if (params.get('draft')) draftId = parseInt(params.get('draft'))
+
+async function initDraft() {
+  if (draftId) {
+    // Rascunho carregado via EJS — só mostra o botão de histórico
+    historyBtn.classList.remove('hidden')
+    lastSynced = { title: titleInput.value, content: editor.value }
+  } else {
+    // Tenta restaurar do localStorage
+    restoreLocal()
+    if (titleInput.value || editor.value) {
+      const res = await fetch('/drafts', { method: 'POST' })
+      const data = await res.json()
+      draftId = data.id
+      historyBtn.classList.remove('hidden')
+      history.replaceState(null, '', `?draft=${draftId}`)
+    }
+  }
+}
+
+let lastSynced = { title: null, content: null }
+let syncTimer = null
+
+async function syncToBank() {
+  const title = titleInput.value
+  const content = editor.value
+  if (title === lastSynced.title && content === lastSynced.content) return
+
+  if (!draftId) {
+    const res = await fetch('/drafts', { method: 'POST' })
+    const data = await res.json()
+    draftId = data.id
+    historyBtn.classList.remove('hidden')
+    history.replaceState(null, '', `?draft=${draftId}`)
+  }
+
+  try {
+    await fetch(`/drafts/${draftId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content })
+    })
+    lastSynced = { title, content }
+    autosaveStatus.textContent = 'Salvo ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  } catch {
+    autosaveStatus.textContent = 'Erro ao salvar'
+  }
+}
+
+// Salva local a cada keystroke, banco a cada 10s
+editor.addEventListener('input', saveLocal)
+titleInput.addEventListener('input', saveLocal)
+
+setInterval(syncToBank, 10000)
+
+// Limpa rascunho ao publicar
+document.getElementById('post-form').addEventListener('submit', () => {
+  localStorage.removeItem(LS_KEY)
+  if (draftId) fetch(`/drafts/${draftId}`, { method: 'DELETE' })
+})
+
+// --- Histórico ---
+async function openHistory() {
+  if (!draftId) return
+  const res = await fetch(`/drafts/${draftId}/history`)
+  const versions = await res.json()
+  const list = document.getElementById('history-list')
+  list.innerHTML = ''
+  if (!versions.length) {
+    list.innerHTML = '<li class="p-4 text-sm text-zinc-400">Nenhuma versão anterior ainda.</li>'
+  } else {
+    versions.forEach(v => {
+      const li = document.createElement('li')
+      li.className = 'p-4 flex items-center justify-between hover:bg-zinc-50 dark:hover:bg-zinc-800'
+      li.innerHTML = `
+        <div>
+          <p class="text-sm text-zinc-800 dark:text-zinc-200">${v.title || '(sem título)'}</p>
+          <p class="text-xs text-zinc-400">${new Date(v.saved_at + 'Z').toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>
+        </div>
+        <button class="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 ml-4 underline">Restaurar</button>
+      `
+      li.querySelector('button').addEventListener('click', () => restoreVersion(v.id))
+      list.appendChild(li)
+    })
+  }
+  document.getElementById('history-modal').classList.remove('hidden')
+}
+
+async function restoreVersion(hid) {
+  const res = await fetch(`/drafts/${draftId}/history/${hid}`)
+  const v = await res.json()
+  titleInput.value = v.title
+  editor.value = v.content
+  titleInput.dispatchEvent(new Event('input'))
+  saveLocal()
+  closeHistory()
+  autosaveStatus.textContent = 'Versão restaurada'
+}
+
+function closeHistory() {
+  document.getElementById('history-modal').classList.add('hidden')
+}
+
+historyBtn.addEventListener('click', openHistory)
+
+// --- Toolbar / atalhos ---
 function insertAt(before, after = '') {
   const start = editor.selectionStart
   const end = editor.selectionEnd
@@ -115,56 +262,36 @@ function fmt(type) {
   }
 }
 
-// Atalhos de teclado no editor
 editor.addEventListener('keydown', e => {
   if (e.ctrlKey && e.key === 'b') { e.preventDefault(); fmt('bold') }
   if (e.ctrlKey && e.key === 'i') { e.preventDefault(); fmt('italic') }
-  // Tab → 2 espaços
-  if (e.key === 'Tab') {
-    e.preventDefault()
-    insertAt('  ')
-  }
+  if (e.key === 'Tab') { e.preventDefault(); insertAt('  ') }
 })
 
 // Ctrl+V com imagem
 editor.addEventListener('paste', async e => {
   const items = e.clipboardData?.items
   if (!items) return
-
   for (const item of items) {
     if (item.type.startsWith('image/')) {
       e.preventDefault()
-
-      if (!currentSlug) {
-        alert('Preencha o título antes de colar uma imagem.')
-        return
-      }
-
+      if (!currentSlug) { alert('Preencha o título antes de colar uma imagem.'); return }
       const file = item.getAsFile()
       const formData = new FormData()
       formData.append('image', file)
-
       const status = document.getElementById('upload-status')
       status.classList.remove('hidden')
-
       try {
-        const res = await fetch(`/upload/${currentSlug}`, {
-          method: 'POST',
-          body: formData
-        })
+        const res = await fetch(`/upload/${currentSlug}`, { method: 'POST', body: formData })
         const data = await res.json()
-        if (data.url) {
-          insertAt(`![imagem](${data.url})`)
-        } else {
-          alert('Erro ao fazer upload: ' + (data.error || 'desconhecido'))
-        }
-      } catch (err) {
-        alert('Erro ao fazer upload da imagem')
-      } finally {
-        status.classList.add('hidden')
-      }
+        if (data.url) insertAt(`![imagem](${data.url})`)
+        else alert('Erro ao fazer upload: ' + (data.error || 'desconhecido'))
+      } catch { alert('Erro ao fazer upload da imagem') }
+      finally { status.classList.add('hidden') }
       break
     }
   }
 })
+
+initDraft()
 </script>

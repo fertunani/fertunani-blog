@@ -18,6 +18,24 @@ function makeSQLitePool() {
         created_at TEXT DEFAULT (datetime('now'))
       )
     `)
+    sqlite.run(`
+      CREATE TABLE IF NOT EXISTS drafts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL DEFAULT '',
+        content TEXT NOT NULL DEFAULT '',
+        updated_at TEXT DEFAULT (datetime('now'))
+      )
+    `)
+    sqlite.run(`
+      CREATE TABLE IF NOT EXISTS draft_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        draft_id INTEGER NOT NULL,
+        title TEXT NOT NULL DEFAULT '',
+        content TEXT NOT NULL DEFAULT '',
+        saved_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (draft_id) REFERENCES drafts(id) ON DELETE CASCADE
+      )
+    `)
   })
 
   return {
@@ -76,6 +94,24 @@ async function makeMySQLPool(connectionString) {
       content LONGTEXT NOT NULL,
       published TINYINT DEFAULT 1,
       created_at DATETIME DEFAULT (UTC_TIMESTAMP())
+    )
+  `)
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS drafts (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(255) NOT NULL DEFAULT '',
+      content LONGTEXT NOT NULL DEFAULT '',
+      updated_at DATETIME DEFAULT (UTC_TIMESTAMP())
+    )
+  `)
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS draft_history (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      draft_id INT NOT NULL,
+      title VARCHAR(255) NOT NULL DEFAULT '',
+      content LONGTEXT NOT NULL DEFAULT '',
+      saved_at DATETIME DEFAULT (UTC_TIMESTAMP()),
+      FOREIGN KEY (draft_id) REFERENCES drafts(id) ON DELETE CASCADE
     )
   `)
 
