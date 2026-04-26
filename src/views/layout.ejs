@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><%= typeof title !== 'undefined' ? title + ' | Fertunani' : 'Fertunani Blog' %></title>
   <link rel="stylesheet" href="/css/output.css" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GN1FHDMLTD"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GN1FHDMLTD');
+  </script>
   <style>
     body { font-family: 'Georgia', serif; }
     code, pre { font-family: 'Courier New', monospace; }
@@ -17,8 +25,21 @@
       <a href="/" class="text-lg font-bold tracking-tight hover:opacity-70 transition-opacity">
         Fertunani
       </a>
-      <div class="flex items-center gap-4 text-sm">
-        <a href="/feed.xml" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">RSS</a>
+      <div class="flex items-center gap-3">
+        <div id="search-wrapper" class="hidden items-center gap-2">
+          <input
+            id="search-input"
+            type="text"
+            placeholder="Pesquisar posts..."
+            class="text-sm bg-transparent border-b border-zinc-300 dark:border-zinc-600 focus:border-zinc-600 dark:focus:border-zinc-300 outline-none px-1 py-0.5 w-44 text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 transition-colors"
+          />
+          <button id="search-close" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors text-xs">✕</button>
+        </div>
+        <button id="search-toggle" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors" title="Pesquisar (CTRL+F)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </button>
         <button id="theme-toggle" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors" title="Alternar tema (CTRL+K)">
           <span id="theme-icon">☀️</span>
         </button>
@@ -66,7 +87,54 @@
         e.preventDefault()
         btn.click()
       }
+      if (e.ctrlKey && e.key === 'f') {
+        e.preventDefault()
+        openSearch()
+      }
+      if (e.key === 'Escape') {
+        closeSearch()
+      }
     })
+
+    const searchToggle = document.getElementById('search-toggle')
+    const searchClose = document.getElementById('search-close')
+    const searchWrapper = document.getElementById('search-wrapper')
+    const searchInput = document.getElementById('search-input')
+
+    function openSearch() {
+      searchWrapper.classList.remove('hidden')
+      searchWrapper.classList.add('flex')
+      searchToggle.classList.add('hidden')
+      searchInput.focus()
+    }
+
+    function closeSearch() {
+      searchWrapper.classList.add('hidden')
+      searchWrapper.classList.remove('flex')
+      searchToggle.classList.remove('hidden')
+      searchInput.value = ''
+      filterPosts('')
+    }
+
+    function filterPosts(query) {
+      const q = query.trim().toLowerCase()
+      document.querySelectorAll('#post-list li[data-title]').forEach(li => {
+        const match = !q || li.dataset.title.includes(q)
+        li.style.display = match ? '' : 'none'
+      })
+      document.querySelectorAll('#post-list .month-group').forEach(group => {
+        const visible = [...group.querySelectorAll('li[data-title]')].some(li => li.style.display !== 'none')
+        group.style.display = visible ? '' : 'none'
+      })
+      document.querySelectorAll('#post-list .year-section').forEach(section => {
+        const visible = [...section.querySelectorAll('.month-group')].some(g => g.style.display !== 'none')
+        section.style.display = visible ? '' : 'none'
+      })
+    }
+
+    searchToggle.addEventListener('click', openSearch)
+    searchClose.addEventListener('click', closeSearch)
+    searchInput.addEventListener('input', e => filterPosts(e.target.value))
   </script>
 </body>
 </html>

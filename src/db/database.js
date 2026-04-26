@@ -85,7 +85,7 @@ async function makeMySQLPool(connectionString) {
 
 let dbPromise
 
-if (process.env.BANCO_DE_DADOS) {
+if (process.env.BANCO_DE_DADOS && process.env.NODE_ENV !== 'development') {
   dbPromise = makeMySQLPool(process.env.BANCO_DE_DADOS).catch(err => {
     console.error('Erro ao conectar no MySQL:', err.message)
     process.exit(1)
