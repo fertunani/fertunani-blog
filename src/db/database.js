@@ -100,7 +100,7 @@ async function makeMySQLPool(connectionString) {
     CREATE TABLE IF NOT EXISTS drafts (
       id INT AUTO_INCREMENT PRIMARY KEY,
       title VARCHAR(255) NOT NULL DEFAULT '',
-      content LONGTEXT NOT NULL DEFAULT '',
+      content LONGTEXT NOT NULL,
       updated_at DATETIME DEFAULT (UTC_TIMESTAMP())
     )
   `)
@@ -109,7 +109,7 @@ async function makeMySQLPool(connectionString) {
       id INT AUTO_INCREMENT PRIMARY KEY,
       draft_id INT NOT NULL,
       title VARCHAR(255) NOT NULL DEFAULT '',
-      content LONGTEXT NOT NULL DEFAULT '',
+      content LONGTEXT NOT NULL,
       saved_at DATETIME DEFAULT (UTC_TIMESTAMP()),
       FOREIGN KEY (draft_id) REFERENCES drafts(id) ON DELETE CASCADE
     )
